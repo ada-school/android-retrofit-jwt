@@ -1,25 +1,22 @@
 <img align="right" src="https://github.com/ada-school/module-template/blob/main/ada.png">
 
 
-## <REPLACE WITH CODELAB NAME>
+## Android REST API with JWT
 
-<Replace with codelab descrition>
+Implement an Interceptor to add a JWT to the requests using Retrofit and SharedPreferences to store the token locally .
 
 **Learning Objectives**
 
-- [ ]  /*replace with learning objetives*/
+- Explain how Interceptos work.
+- Implement an Interceptor to a JWT to request with Retrofit.
 
-
-
-## /*Replace with Human Skill to be practice*/ 🤹🏽 
-
-/*replace with brief introduction of human skill in the context of the codelab*/
 
 **Main Topics**
 
-* /*replace with main topic 1*/
-* /*replace with main topic 2*/
-* /*replace with main topic 2*/
+* Interceptor.
+* JWT.
+* Retrofit.
+* SharedPreferences.
 
 
 
@@ -29,10 +26,46 @@
 
 
 
-### Part 1: /*Replace with Part 1 title*/:
+### Part 1: Define the Storage Interface  and implment the SharedPreferences version:
 
-### Advance Challenge: <replace with challenge title>
+1. Create a new packaged called *storage*
+2. Create a new Interface called *Storage* and define the common functionality to store the Token info on the local preferences:
+   ```kotlin
+      interface Storage {
 
-1. /*replace with addicional challenge for advanced students*/
+          fun saveToken(token: String)
 
-   ***Hint***: /*replace with a hint that help students solve the challenge*/
+          fun getToken(): String?
+
+          fun clear()
+      }
+   ```
+3. Implement the Storage interface using the SharedPreferences inside:
+   ```kotlin
+      class SharedPreferencesLocalStorage(private val sharedPreferences: SharedPreferences) :Storage {
+
+          override fun saveToken(token: String) {
+              sharedPreferences.edit()
+                  .putString(TOKEN_KEY, token)
+                  .apply()
+          }
+
+          override fun getToken(): String? {
+              return sharedPreferences.getString(TOKEN_KEY, "")
+          }
+
+          override fun clear() {
+              sharedPreferences.edit().clear().apply()
+          }
+
+      }
+   ```
+
+### Challenge Yourself: Implement a mechanism to support Application tokens
+
+1. Implement a new method in the *AuthController* that receives an encrypted secret and verify that the secret is the
+   same that you have locally using a new environment variable. If the secret match then you will generate a token that
+   will allow the server to have *ADMIN* role token for 10 minutes.
+
+   ***Tip***: Divide this problem into smaller problems. Once you solve each problem test your solution and only continue
+   if it works.
