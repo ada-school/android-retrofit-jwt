@@ -8,7 +8,7 @@ Implement an Interceptor to add a JWT to the requests using Retrofit and SharedP
 **Learning Objectives**
 
 - Explain how Interceptos work.
-- Implement an Interceptor to a JWT to request with Retrofit.
+- Implement an Interceptor to a JWT to the request using Retrofit.
 
 
 **Main Topics**
@@ -26,10 +26,10 @@ Implement an Interceptor to add a JWT to the requests using Retrofit and SharedP
 
 
 
-### Part 1: Define the Storage Interface  and implment the SharedPreferences version:
+### Part 1: Define the Storage Interface  and implment the SharedPreferences version
 
 1. Create a new packaged called *storage*
-2. Create a new Interface called *Storage* and define the common functionality to store the Token info on the local preferences:
+2. Create a new interface called *Storage* and define the common functionality to store the token info on the local preferences:
    ```kotlin
       interface Storage {
 
@@ -40,9 +40,14 @@ Implement an Interceptor to add a JWT to the requests using Retrofit and SharedP
           fun clear()
       }
    ```
-3. Implement the Storage interface using the SharedPreferences inside:
+3. Create a new file called *Constants.kt* and add the following constants:
    ```kotlin
-      class SharedPreferencesLocalStorage(private val sharedPreferences: SharedPreferences) :Storage {
+      const val SHARED_PREFERENCES_FILE_NAME = "my_prefs"
+      const val TOKEN_KEY= "token_key"
+   ``` 
+4. Implement the *Storage* interface using the *SharedPreferences*:
+   ```kotlin
+      class SharedPreferencesStorage(private val sharedPreferences: SharedPreferences) :Storage {
 
           override fun saveToken(token: String) {
               sharedPreferences.edit()
@@ -60,12 +65,48 @@ Implement an Interceptor to add a JWT to the requests using Retrofit and SharedP
 
       }
    ```
+   
+### Part 2: Implement the JWT Interceptor
 
-### Challenge Yourself: Implement a mechanism to support Application tokens
+1. Implement the JWTInterceptor and inject the *Storage* via the constructor to retrieve the token:
+   ```kotlin
+      class JWTInterceptor(private val tokenStorage: TokenStorage) : Interceptor {
 
-1. Implement a new method in the *AuthController* that receives an encrypted secret and verify that the secret is the
-   same that you have locally using a new environment variable. If the secret match then you will generate a token that
-   will allow the server to have *ADMIN* role token for 10 minutes.
+          override fun intercept(chain: Interceptor.Chain): Response {
+              val request = chain.request().newBuilder()
+              val token = tokenStorage.getToken()
+              if (token != null) {
+                  request.addHeader("Authorization", "Bearer $token")
+              }
+              return chain.proceed(request.build())
+          }
 
-   ***Tip***: Divide this problem into smaller problems. Once you solve each problem test your solution and only continue
-   if it works.
+      }
+   ```
+2. Configure the *Retrofit* instance adding the JWTInterceptor:
+   ```kotlin
+        val loggingInterceptor = HttpLoggingInterceptor()
+           loggingInterceptor.level = HttpLoggingInterceptor.Level.BODY
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .addInterceptor(jwtInterceptor)
+            .writeTimeout(0, TimeUnit.MILLISECONDS)
+            .readTimeout(2, TimeUnit.MINUTES)
+            .connectTimeout(1, TimeUnit.MINUTES).build()
+
+        val gson = GsonBuilder()
+            .setDateFormat("yyyy-MM-dd'T'HH:mm:ssX")
+            .create()
+
+        return Retrofit.Builder()
+            .baseUrl("https://dog.ceo/api/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .addCallAdapterFactory(CoroutineCallAdapterFactory())
+            .build()
+   ```
+### Challenge Yourself: Implement a more secure Storage that encrypts the information saved.
+
+1. Create another implementation of the *Storage* called *EncryptedStorage* that uses encryption to save the data with more security.
+
+   ***Tip***: Find a library that helps you achieve the encryption inside the SharedPreferences or to encrypt and decrypt each data field directly.
